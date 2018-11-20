@@ -4,6 +4,8 @@ body {
   overscroll-behavior: contain;
   overflow-y: hidden;
   -webkit-overflow-scrolling: -auto;
+  user-select:none;
+  -webkit-user-select:none;
 }
 html,body{
    position: fixed;

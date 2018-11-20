@@ -1,15 +1,25 @@
-const express = require('express')
-const app = express()
-const http = require('http').Server(app)
-//var io = require('socket.io')()
-let io = require('socket.io')(http)
-var osc = require('osc-min')
-var dgram = require('dgram')
+'use strict'
 
-const OSC = require('osc-js')
+//var io = require('socket.io')()
+const express = require('express'),
+app = express(),
+http = require('http').Server(app),
+fs = require('fs'),
+osc = require('osc-min'),
+dgram = require('dgram'),
+OSC = require('osc-js');
+let io = require('socket.io')(http);
+
+
+const _collect = process.argv[2] && process.argv[2] == '--collect'? true : false;
+// g1, g2, ... g6, etc
+const _gesto = _collect && process.argv[3] ? process.argv[3].replace('--','') : null;
+if (_collect && _gesto) console.log(`* * * collecting data for ${_gesto} * * *`)
+
 
 app.use(express.static('public'))
 app.get('/',(req,res)=>{ res.sendFile(__dirname + '/index.html')})
+
 
 var remoteIp = '127.0.0.1'
 var remotePort = 6448
@@ -39,26 +49,40 @@ io.on('connection', (socket) => {
 
   console.log('osc_js @@')
 
-  socket.on('browser', (data) => {
-    console.log('browser event', data.length)
-    console.log(data)
-    var args = []
+  socket.on('browser', (gestData) => {
+    console.log('browser event', gestData.length, '= 4*20')
+    console.log(gestData)
+    if (gestData.length != 80) console.log('not a gesture')
+    
+    const args = []
 
-    data.forEach(function (element) {
+    // for wekinator
+    gestData.forEach(element =>{
       args.push({
         type: 'float',
         value: parseFloat(element) || 0
       })
     })
 
-    var oscMsg = osc.toBuffer({
+    // save gesture data to its file (for tensorflow)
+    const fileName = process.cwd() + '/gesture_data/' + _gesto +'.json';
+    fs.readFile(fileName,'utf8',(err, data)=>{
+    	if (err) throw err;
+    	data = JSON.parse(data)
+    	
+    	data.data.push(gestData)  //[0.0,1.0])
+    	console.log('\n', data.data.length)
+    	fs.writeFile( fileName, JSON.stringify(data), 'utf8', err=>{ if (err) console.error(err) })
+    })
+
+    const oscMsg = osc.toBuffer({
       oscType: 'message',
       address: '/wek/inputs',
       args: args
     })
 
     udpServer.send(oscMsg, 0, oscMsg.length, remotePort, remoteIp)
-    console.log('OSC message sent to ' + remoteIp + ':' + remotePort)
+    //console.log('OSC message sent to ' + remoteIp + ':' + remotePort)
 
   })
 })
@@ -80,3 +104,9 @@ http.listen(3050, ()=>{ console.log('http on 3050')})
 
 //io.listen(3000)
 //console.log('socket listening on port 3000')
+
+/*
+{
+"desc":"intensity 20% down",
+"data":[]
+}*/

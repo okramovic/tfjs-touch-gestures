@@ -10,9 +10,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "osc-min": "^1.1.1",
-    "socket.io": "^1.4.5",
+    "@tensorflow/tfjs": "^0.13.5",
+    "express": "*",
     "osc-js": "^1.2.2",
-    "express": "*"
+    "osc-min": "^1.1.1",
+    "socket.io": "^1.4.5"
   }
 }
