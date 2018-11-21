@@ -14,7 +14,15 @@ let io = require('socket.io')(http);
 const _collect = process.argv[2] && process.argv[2] == '--collect'? true : false;
 // g1, g2, ... g6, etc
 const _gesto = _collect && process.argv[3] ? process.argv[3].replace('--','') : null;
-if (_collect && _gesto) console.log(`* * * collecting data for ${_gesto} * * *`)
+let _desc = '';
+switch(_gesto){
+	case 'g1': _desc = 'intensity 20% down'; break;
+	case 'g4': _desc = 'intensity 20% up'; break;
+	case 'g7': _desc = 'intensity to 0%'; break;
+	case 'g8': _desc = 'intensity to 100%'; break;
+	default: console.log('no gesture provided !!')
+}
+if (_collect && _gesto) console.log(`* * * collecting data for ${_gesto}, ${_desc} * * *`)
 
 
 app.use(express.static('public'))
@@ -52,7 +60,10 @@ io.on('connection', (socket) => {
   socket.on('browser', (gestData) => {
     console.log('browser event', gestData.length, '= 4*20')
     console.log(gestData)
-    if (gestData.length != 80) console.log('not a gesture')
+    if (gestData.length != 80) {
+    	console.log(' --- not a gesture --- ')
+    	return;
+    }
     
     const args = []
 
