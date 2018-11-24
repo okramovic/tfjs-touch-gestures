@@ -5,18 +5,19 @@ const tf = require('@tensorflow/tfjs')
 const fs = require('fs')
 //import * as tf from '@tensorflow/tfjs';
 
+const gests = {
+		0: '20% down',
+		1: '20% up',
+		6: '0% Off'
+		//,7: '100%'
+}
 const dataFiles = ['g1','g4','g7'] //,'g8']
 const allData = {},
 	  allLabels = {},
 	  testData = {};
 const zeros = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]; // for 20 gestures
 
-const gests = {
-		0: '20% down',
-		1: '20% up',
-		6: '0% Off',
-		7: '100%'
-}
+
 
 
 getFileData()
@@ -25,9 +26,9 @@ getFileData()
 	//return;
 	const flattenedData = []
 	const trainLabels = [];
-	const maxGs = 210; // i have only 10 gesture for g1 now
+	const maxGs = 65; // i have only 10 gesture for g1 now
 	// create labels array for each gesture
-	Object.keys(rawData).map( g =>{
+	Object.keys(rawData).map((g,keyI) =>{
 		
 		// get index where to put 1 into labels
 		const index = parseInt(g.replace('g','')) -1;
@@ -39,9 +40,10 @@ getFileData()
 		const newx = rawData[g].splice(0,maxGs)//.map(arr=>arr.splice(0,2)) // just for debug
 		flattenedData.push(...newx)
 			
+		log('index', index)
 		// put labels into same shape = 10 x [20 x 1]
 		for (let i=0; i<maxGs; i++){
-			trainLabels.push(index)
+			trainLabels.push(keyI) //index)
 		}
 		//log(g,'has ', rawData[g].length,'gestures')
 				
@@ -60,48 +62,52 @@ async function doModel(dataPoints, trainLabels){
 	if (dataPoints.length != trainLabels.length) return log('wierd data');
 	
 	//log(dataPoints)
-	//log(trainLabels)
+	log(trainLabels[180])
 	const numGestures = dataFiles.length;
 	const model = tf.sequential()
 
 	const xs = tf.tensor2d(dataPoints) // aa,[4,3],'int32'
 	
 	const onehots = tf.tensor1d(trainLabels, 'int32');
-	log('onehots.shape',onehots.shape)
+	//log('onehots.shape',onehots.shape)
+	//onehots.print()
 	const labels = tf.oneHot(onehots, numGestures)	// second arg (num classes?) has to match units in layer 1
+	labels.print()
+	const test = labels.dataSync()
+	//log('test[i]', test[0], test[1], test[2], test[3])
+	log('\n\n')
 	const shape = 80 // has to match length of inside array(80)
 	//const ys = tf.tensor1d([0,1,0,0],[[4,1]])
 	//const ys = tf.tensor2d([[0],[1],[1],[0]])
 	
-	const l1 = tf.layers.dense({ units: numGestures, inputShape: shape, activation: 'softmax' })
-	const l2 = tf.layers.dense({ units: 40, activation: 'sigmoid'})
-	const l3 = tf.layers.dense({ units: 18, activation: 'sigmoid'})
+	//const l1 = 
+	model.add( tf.layers.dense({ units: 80, inputShape: shape, activation: 'sigmoid' }) )
+	model.add( tf.layers.dense({ units: 40, activation: 'softmax'}) )
+	//model.add( tf.layers.dense({ units: 16, activation: 'sigmoid'}) )
+	//model.add( tf.layers.dense({ units: 16, activation: 'sigmoid'}) )
+	//model.add( tf.layers.dense({ units:  8, activation: 'sigmoid'}) )
+	//const l3 = tf.layers.dense({ units: 18, activation: 'sigmoid'})
 	
-	const output = tf.layers.dense({ units: numGestures, activation: 'softmax'})
 	// https://medium.com/tensorflow/a-gentle-introduction-to-tensorflow-js-dba2e5257702
-	model.add(l1)
-	model.add(l2)
-	model.add(l3)
+	const output = tf.layers.dense({ units: numGestures, activation: 'softmax'})
 	model.add(output);	// this layer makes loss somewhat smaller
 	
-	//model.add(tf.layers.dense({ units: 4 , activation: 'sigmoid'}))
-	//model.add(tf.layers.dense({ units: 20, activation: 'softmax'}))
 		
-	const optimizer = tf.train.sgd(0.3);
+	const optimizer = tf.train.adam(0.005); // adam w 0.005 is way better (100% training accur.) than any sgd
 	model.compile({loss: 'categoricalCrossentropy', optimizer: optimizer })
 	
 	//train
 	model.fit(xs, labels, {
        //batchSize: 1,
        shuffle: true,
-       epochs: 100,
+       epochs: 200,
        //validationSplit: 0.1,
        //metrics: ['accuracy'],
        callbacks:{
 		   onTrainStart:()=>{ console.log('start') },
 		   onTrainEnd:  ()=>{ console.log(' -- training complete -- ')},
 		   onEpochStart:()=>{log('e')},
-		   onEpochEnd: (epochNum,logs)=>log(epochNum, logs)
+		   onEpochEnd: (epochNum,logs)=>{if (epochNum%10==0)log(epochNum, logs)}
 		}
 		
 	// predict	

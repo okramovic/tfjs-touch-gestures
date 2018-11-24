@@ -10,7 +10,9 @@ dgram = require('dgram'),
 OSC = require('osc-js');
 let io = require('socket.io')(http);
 
-const gest_folder = 'gesture_data_2';
+const gest_folder = 'gesture_data_3';
+
+
 const _collect = process.argv[2] && process.argv[2] == '--collect'? true : false;
 // g1, g2, ... g6, etc
 const _gesto = _collect && process.argv[3] ? process.argv[3].replace('--','') : null;
@@ -22,7 +24,8 @@ switch(_gesto){
 	case 'g8': _desc = 'intensity to 100%'; break;
 	default: console.log('no gesture provided !!')
 }
-if (_collect && _gesto) console.log(`* * * collecting data for ${_gesto}, ${_desc} * * *`)
+if (_collect && _gesto) console.log(`* * * collecting data for ${_gesto}, ${_desc} into /${gest_folder}/ * * *`)
+
 
 
 app.use(express.static('public'))
@@ -33,6 +36,8 @@ var remoteIp = '127.0.0.1'
 var remotePort = 6448
 
 var udpServer = dgram.createSocket('udp4')
+
+console.log('hoy oy');
 
 // Get xy coordinates from browser, create an OSC message and send to Wekinator
 io.on('connection', (socket) => {
@@ -55,8 +60,6 @@ io.on('connection', (socket) => {
 
   osc_js.open({port: 12000})
 
-  console.log('osc_js @@')
-
   socket.on('browser', (gestData) => {
     console.log('browser event', gestData.length, '= 4*20')
     console.log(gestData)
@@ -64,16 +67,8 @@ io.on('connection', (socket) => {
     	console.log(' --- not a gesture --- ')
     	return;
     }
+    if (!_gesto) console.log('not recording')
     
-    const args = []
-
-    // for wekinator
-    gestData.forEach(element =>{
-      args.push({
-        type: 'float',
-        value: parseFloat(element) || 0
-      })
-    })
 
     // save gesture data to its file (for tensorflow)
     const fileName = process.cwd() + '/' + gest_folder + '/' + _gesto +'.json';
@@ -91,15 +86,22 @@ io.on('connection', (socket) => {
 		})*/
     })
 
+	return;
+	
+	// for wekinator
+	const args = []
+    gestData.forEach(element =>{
+      args.push({
+        type: 'float',
+        value: parseFloat(element) || 0
+      })
+    })
     const oscMsg = osc.toBuffer({
       oscType: 'message',
       address: '/wek/inputs',
       args: args
     })
-
     udpServer.send(oscMsg, 0, oscMsg.length, remotePort, remoteIp)
-    //console.log('OSC message sent to ' + remoteIp + ':' + remotePort)
-
   })
 })
 

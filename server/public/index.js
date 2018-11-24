@@ -67,22 +67,28 @@ socket.on('connect', function() {
     var sampleIndex = 0
 
     for (let i=0; i<inputsNumber/2; i++) { // i reaches 19
-      let x1 = (rawData[Math.round(sampleIndex)].x1 - originX1) / window.innerWidth
-      let y1 = (rawData[Math.round(sampleIndex)].y1 - originY1) / window.innerHeight
+      //let x1 = (rawData[Math.round(sampleIndex)].x1 - originX1) / window.innerWidth
+      //let y1 = (rawData[Math.round(sampleIndex)].y1 - originY1) / window.innerHeight
+      let x1 = (rawData[Math.round(sampleIndex)].x1) / window.innerWidth
+      let y1 = (rawData[Math.round(sampleIndex)].y1) / window.innerHeight
       		x1 = parseFloat( x1.toFixed(5) )
       		y1 = parseFloat( y1.toFixed(5) )
-      let x2 = (rawData[Math.round(sampleIndex)].x2 - originX2) / window.innerWidth
-      let y2 = (rawData[Math.round(sampleIndex)].y2 - originY2) / window.innerHeight
+      //let x2 = (rawData[Math.round(sampleIndex)].x2 - originX2) / window.innerWidth
+      //let y2 = (rawData[Math.round(sampleIndex)].y2 - originY2) / window.innerHeight
+      let x2 = (rawData[Math.round(sampleIndex)].x2) / window.innerWidth
+      let y2 = (rawData[Math.round(sampleIndex)].y2) / window.innerHeight
       		x2 = parseFloat( x2.toFixed(5) )
       		y2 = parseFloat( y2.toFixed(5) )
       inputsArray.push(x1, y1, x2, y2);
       sampleIndex += downsampleFactor;
+      show(x1,y1)
     }
 
     socket.emit('browser', inputsArray)
     rawData = []
     
     originX1 = originY1 = originX2 = originY2 = 0
+    //show(innerWidth, innerHeight)
     //show(originX1, originY1, originX2, originY2)
   }
 })
