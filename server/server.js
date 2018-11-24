@@ -10,7 +10,7 @@ dgram = require('dgram'),
 OSC = require('osc-js');
 let io = require('socket.io')(http);
 
-
+const gest_folder = 'gesture_data_2';
 const _collect = process.argv[2] && process.argv[2] == '--collect'? true : false;
 // g1, g2, ... g6, etc
 const _gesto = _collect && process.argv[3] ? process.argv[3].replace('--','') : null;
@@ -76,14 +76,19 @@ io.on('connection', (socket) => {
     })
 
     // save gesture data to its file (for tensorflow)
-    const fileName = process.cwd() + '/gesture_data/' + _gesto +'.json';
+    const fileName = process.cwd() + '/' + gest_folder + '/' + _gesto +'.json';
     fs.readFile(fileName,'utf8',(err, data)=>{
     	if (err) throw err;
     	data = JSON.parse(data)
     	
     	data.data.push(gestData)  //[0.0,1.0])
-    	console.log('\n', data.data.length)
-    	fs.writeFile( fileName, JSON.stringify(data), 'utf8', err=>{ if (err) console.error(err) })
+    	
+    	fs.writeFileSync( fileName, JSON.stringify(data), 'utf8') 
+    	console.log(_gesto, data.data.length)
+    	/*, err=>{ 
+				//if (err) console.error(err) 
+				//console.log('\n', data.data.length)
+		})*/
     })
 
     const oscMsg = osc.toBuffer({

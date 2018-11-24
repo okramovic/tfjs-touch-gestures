@@ -40,7 +40,7 @@ getFileData()
 		}
 		log(g,'has ', rawData[g].length,'gestures')
 	})
-	log('finals', flattenedData.length, trainLabels.length)
+	//log('finals', flattenedData.length, trainLabels.length)
 
 	doModel(flattenedData, trainLabels)
 })
@@ -50,53 +50,58 @@ async function doModel(dataPoints, trainLabels){
 	
 	//log(dataPoints)
 	//log('\n')
-	log(trainLabels)
+	//log(trainLabels)
 	
 	const model = tf.sequential()
 
 	//const units = Math.floor(dataPoints.length*0.8)
+	//const dataCount = dataPoints.length;
+	//log('all', dataPoints.length, trainLabels.length)
 	//log('all', dataPoints.length, trainLabels.length)
 	const aa = [
-		[0,0,0,0,0],
-		[1,1,1,1,1],
-		[0,0,0,0,0],
-		[3,3,3,3,3]
+		[0,0,0],
+		[1,1,1],
+		[2,2,2],
+		[3,3,3]
 	]
-	const xs = tf.tensor2d(aa) // aa,[4,3],'int32' //[[0,0],[0,1],[1,0],[1,1]]),
-	const onehots = tf.tensor1d([0,1,0,2], 'int32');
+	const xs = tf.tensor2d(aa,[4,3],'int32') //[[0,0],[0,1],[1,0],[1,1]]),
+	const onehots = tf.tensor1d([0,1,0,1],'int32');
 	onehots.print()
-	const labels = tf.oneHot(onehots, 3)	// second arg (num classes?) has to match units in layer 1
-	const shape = 5 // has to match length of inside array(later = 80) //[4,3] //tf.tensor([4,3])
+	const ys = tf.oneHot(onehots, 2)
+	const shape = 3//[4,3] //tf.tensor([4,3])
 	//const ys = tf.tensor1d([0,1,0,0],[[4,1]])
 	//const ys = tf.tensor2d([[0],[1],[1],[0]])
 	//const xs = tf.input({shape: })//tf.tensor(aa)	// tf.tensor2d(dataPoints, [80,80])			//, [40,80,1])
-	labels.print()
+	xs.print()
 	//log(labels)
-	const l1 = tf.layers.dense({ units: 3, inputShape: shape, activation: 'softmax' })
-	model.add(l1)
-	//const l2 = tf.layers.dense({ units: 8, activation: 'sigmoid'})
-	//model.add(l2)	// this layer makes loss somewhat smaller
+	//return;
+	model.add(tf.layers.dense({units:2, inputShape:shape, activation: 'sigmoid'}))
+	//model.add(tf.layers.dense({units:4, activation: 'sigmoid'}))
 	//model.compile({optimizer: 'sgd', loss: 'categoricalCrossentropy', lr:0.1})
 	//const labels = tf.tensor2d([5,6,7,8],[4,1])//tf.tensor1d(trainLabels,80) //tf.tensor2d(trainLabels) //, [trainLabels.length,20])
+	//log(labels.shape);
 	
-	//model.add(tf.layers.dense({ units: 4 , activation: 'sigmoid'}))
+	// for xs tried: inputShape: [1,80]
+	//model.add(tf.layers.dense({ units: 4 , activation: 'sigmoid'}))	// inputShape: xs.shape,   [dataCount,1]
 	//model.add(tf.layers.dense({ units: 20, activation: 'softmax'}))
 		
-	const optimizer = tf.train.adam(0.2);
+	const lr = 0.2;
+	const optimizer = tf.train.sgd(lr);
 	model.compile({loss: 'categoricalCrossentropy', optimizer: optimizer }) // categoricalCrossentropy
 	
-	model.fit(xs, labels, {
+	model.fit(xs, ys, {
        //batchSize: 1,
-       epochs: 20,
+       epochs: 50,
        callbacks:{
-		   onTrainStart:()=>{ console.log('start') },
+		   onTrainStart:()=>{console.log('start')},
 		   onTrainEnd:  ()=>{ console.log(' -- training complete -- ')},
-		   onEpochStart:()=>{log('e')},
-		   onEpochEnd: (epochNum,logs)=>log(logs)
+		   onEpochEnd: (epochNum,logs)=> log(logs)
 		}
 	}).then( x=> console.log('! hoy !'))
 	
 	return;
+	//const xs = tf.tensor2d([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [10, 1]);
+	//const ys = tf.tensor2d([2, 4, 6, 8, 10, 12, 14, 16, 18, 20],  [10, 1]);
 
 	const fitConfig = {
 		epochs: 50,
