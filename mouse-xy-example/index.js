@@ -1,25 +1,22 @@
 //var io = require('socket.io-client')
-var socket = io('http://localhost:3000')
-var inputsNumber = 40
+const socket = io('http://localhost:3000'),
+inputsNumber = 40;
 
 
-// Mouse x, y coordinates over web sockets on mouse drag
-// Inputs number is what Wekinator (or your ML algorithms) expects
-
-socket.on('connect', function() {
+socket.on('connect', () =>{
 
   var isMouseDown = false
   var rawData = []
   var originX, originY
 
-  document.onmousedown = function(e) {
+  document.onmousedown = e =>{
     isMouseDown = true
     originX = e.clientX
     originY = e.clientY
     console.log('mousedown')
   }
 
-  document.onmouseup   = function() {
+  document.onmouseup   = () =>{
     isMouseDown = false
     var inputsArray = []
 
