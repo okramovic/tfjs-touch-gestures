@@ -8,6 +8,7 @@ let rawData = []
 document.querySelector('span').innerHTML = 'wilkommen';
 
 
+
 socket.on('connect', function() {
   
   document.querySelector('span').innerHTML = 'connected';
