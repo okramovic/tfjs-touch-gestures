@@ -65,7 +65,7 @@ io.on('connection', (socket) => {
     	console.log(' --- not a gesture --- ')
     	return;
     }
-    if (!_gesto) console.log('not recording')
+    if (!_gesto) return console.log('not recording')
     
 
     // save gesture data to its file (for tensorflow)

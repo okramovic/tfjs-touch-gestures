@@ -6,8 +6,14 @@ body {
   -webkit-overflow-scrolling: -auto;
   user-select:none;
   -webkit-user-select:none;
+  
+  display: flex;
+  flex-direction: column;
 }
 html,body{
-   position: fixed;
-   -overflow: -hidden;
+	margin: 0px;
+	position: fixed;
+	-overflow: -hidden;
+	width: 100vw;
+	height: 100vh;
 }
