@@ -6,8 +6,16 @@ http = require('http').Server(app),
 fs = require('fs'),
 osc = require('osc-min'),
 dgram = require('dgram'),
-OSC = require('osc-js');
-let io = require('socket.io')(http);
+OSC = require('osc-js'),
+SerialPort = require('serialport')//.SerialPort;	// https://serialport.io/docs/en/api-serialport
+
+const serial = new SerialPort('/dev/ttyACM1', {baudRate: 9600})
+//console.log(serial)
+//serial = new SerialPort('/dev/ttyACM0', {baudrate: 9600})
+let io = require('socket.io')(http)
+
+
+serial.write("robot on");
 
 const gest_folder = 'gesture_data_3';
 
@@ -58,7 +66,11 @@ io.on('connection', (socket) => {
 
   osc_js.open({port: 12000})
   socket.on('oneCol', gestData => {
-	console.log('one col', gestData)
+	console.log('one col', JSON.stringify(gestData))
+	//serial.write(JSON.stringify(gestData));
+	serial.write('r' + gestData[0])
+	serial.write('g' + gestData[1])
+	serial.write('b' + gestData[2])
   })
 	  
   socket.on('browser', (gestData) => {
