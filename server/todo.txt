@@ -1,0 +1,2 @@
+- when one finger startes later than first one, this finger's gesture start from 0,0
+	=> prevent this

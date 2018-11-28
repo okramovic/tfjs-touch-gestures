@@ -1,6 +1,8 @@
 const socket = io('192.168.0.136:3050'); // from https://whatismyip.live/  //io('http://localhost:3050')
 const inputsNumber = 40; // how long/complex gestures will this allow?
 
+let startPoint = {};
+let fingerCount = 0;
 let isMouseDown = false;
 let rawData = []
 //let originX1, originY1, originX2, originY2; // XYs for both fingers
@@ -11,26 +13,33 @@ document.querySelector('span').innerHTML = 'wilkommen';
 
 socket.on('connect', function() {
   
+  
   document.querySelector('span').innerHTML = 'connected';
   
   document.ontouchstart = e => {
     isMouseDown = true;
     show('touch Start')
+    fingerCount = e.touches.length > fingerCount ? e.touches.length : fingerCount; // to prevent touchend to fire to soon
+    
+    startPoint.x = parseInt(e.touches[0].clientX),
+	startPoint.y = parseInt(e.touches[0].clientY)
     e.preventDefault();
   }
   //document.ontouchend = handleMouseEnd
   
   document.ontouchmove = e => {
      
-     if(isMouseDown) {
+     if(!isMouseDown) return e.preventDefault();
        
-       const x1 = parseInt(e.touches[0].clientX),
+     if (rawData.length>0) toggleHue(0);
+       
+     const x1 = parseInt(e.touches[0].clientX),
 		     y1 = parseInt(e.touches[0].clientY),
 		     x2 = e.touches[1] ? parseInt(e.touches[1].clientX) : 0,
 		     y2 = e.touches[1] ? parseInt(e.touches[1].clientY) : 0;
-       rawData.push({ x1, y1, x2, y2})
-       //show(x1,y1,x2,y2)
-     }
+     rawData.push({ x1, y1, x2, y2})
+     //show(x1,y1,x2,y2)
+     show('rawData.length', rawData.length, e.touches.length)
      e.preventDefault();
   }
 })
@@ -39,14 +48,30 @@ socket.on('connect', function() {
 function handleMouseEnd(e){
     isMouseDown = false
     let inputsArray = []
-
+            
+    fingerCount--;
+    if (fingerCount>0) return;	// this event is fired for each finger leaving screen separately
+     
+    show('rawData.length', rawData.length)
     // TODO: how do I deal with short gestures?
     // Ignore for now, later maybe interpolation
-    if ((rawData.length * 2) < inputsNumber) {
-      rawData = []
-      return
+    if (rawData.length < 3){
+		
+		const pointCol = get(startPoint.x, startPoint.y);	// get color values from point 1
+						// by adding 3rd and 4th arg, i could choose area
+						// https://p5js.org/reference/#/p5/get
+		
+		if (pointCol.every(c=>!!c)) socket.emit('oneCol', pointCol); // emit only if user isnt touching empty screen
+		toggleHue(1);
+		return;
+		
+	} else if ((rawData.length * 2) < inputsNumber) {
+      rawData = []      
+      show('rawData.length < inputsNumber')
+      toggleHue(1)
+      return;
     }
-
+	//toggleHue(0)
 	// for drawing
 	const fin1 = [],
 		  fin2 = [];

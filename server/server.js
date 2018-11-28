@@ -57,7 +57,10 @@ io.on('connection', (socket) => {
   })
 
   osc_js.open({port: 12000})
-
+  socket.on('oneCol', gestData => {
+	console.log('one col', gestData)
+  })
+	  
   socket.on('browser', (gestData) => {
     console.log('browser event', gestData.length, '= 4*20')
     console.log(gestData)
