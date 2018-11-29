@@ -12,6 +12,8 @@
   "dependencies": {
     "@tensorflow/tfjs": "^0.13.5",
     "express": "*",
+    "node-fetch": "^2.3.0",
+    "node-fetch-polyfill": "^2.0.6",
     "osc-js": "^1.2.2",
     "osc-min": "^1.1.1",
     "serialport": "^7.1.0",

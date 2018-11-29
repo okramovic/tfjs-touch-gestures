@@ -1,5 +1,7 @@
 'use strict'
 
+global.fetch = require('node-fetch');
+
 const express = require('express'),
 app = express(),
 http = require('http').Server(app),
@@ -7,15 +9,16 @@ fs = require('fs'),
 osc = require('osc-min'),
 dgram = require('dgram'),
 OSC = require('osc-js'),
+tf = require('@tensorflow/tfjs'),
 SerialPort = require('serialport')//.SerialPort;	// https://serialport.io/docs/en/api-serialport
 
-const serial = new SerialPort('/dev/ttyACM1', {baudRate: 9600})
+//const serial = new SerialPort('/dev/ttyACM1', {baudRate: 9600})
 //console.log(serial)
 //serial = new SerialPort('/dev/ttyACM0', {baudrate: 9600})
 let io = require('socket.io')(http)
 
 
-serial.write("robot on");
+//serial.write("robot on");
 
 const gest_folder = 'gesture_data_3';
 
@@ -42,7 +45,17 @@ app.get('/',(req,res)=>{ res.sendFile(__dirname + '/index.html')})
 var remoteIp = '127.0.0.1'
 var remotePort = 6448
 
-var udpServer = dgram.createSocket('udp4')
+var udpServer = dgram.createSocket('udp4');
+
+(async ()=>{
+	console.log('iife')
+	const model = await tf.loadModel('http://localhost:3000/model_a.json')
+	console.log('awaited', model)
+	
+	const idk1 = [0.58333,0.38036,0,0,0.57778,0.40714,0,0,0.575,0.43036,0,0,0.56944,0.47143,0,0,0.56389,0.49286,0,0,0.55833,0.51964,0,0,0.55833,0.53571,0,0,0.55556,0.56071,0,0,0.55278,0.56786,0,0,0.55278,0.57679,0,0,0.55,0.57857,0,0,0.55,0.58214,0,0,0.55,0.58393,0,0,0.55,0.58929,0,0,0.55,0.58929,0,0,0.55,0.59107,0,0,0.55,0.59107,0,0,0.55,0.59286,0,0,0.55,0.59286,0,0,0.55,0.59286,0,0];
+	const res = await model.predict(tf.tensor2d(idk1,[1,80]))
+	console.log('expect:', 1, res.dataSync())
+})()
 
 
 // Get xy coordinates from browser, create an OSC message and send to Wekinator
@@ -80,6 +93,8 @@ io.on('connection', (socket) => {
     	console.log(' --- not a gesture --- ')
     	return;
     }
+    
+    
     if (!_gesto) return console.log('not recording')
     
 
