@@ -12,10 +12,17 @@ OSC = require('osc-js'),
 tf = require('@tensorflow/tfjs'),
 SerialPort = require('serialport')//.SerialPort;	// https://serialport.io/docs/en/api-serialport
 
-//const serial = new SerialPort('/dev/ttyACM1', {baudRate: 9600})
-//console.log(serial)
-//serial = new SerialPort('/dev/ttyACM0', {baudrate: 9600})
-let io = require('socket.io')(http)
+let io = require('socket.io')(http);
+
+/*
+const serPort = '/dev/ttyACM0';
+try {
+	const serial = new SerialPort( serPort, {baudRate: 9600})
+	console.log(serial)
+} catch (ex){
+	console.error('couldnt connect to Serial port',serPort)
+}*/
+
 
 
 //serial.write("robot on");
@@ -32,6 +39,8 @@ switch(_gesto){
 	case 'g4': _desc = 'intensity 20% up'; break;
 	case 'g7': _desc = 'intensity to 0%'; break;
 	case 'g8': _desc = 'intensity to 100%'; break;
+	case 'g10': _desc = 'o clock mode'; break;
+	case 'g11': _desc = 'goodnight mode'; break;
 	default: console.log('no gesture provided !!')
 }
 if (_collect && _gesto) console.log(`* * * collecting data for ${_gesto}, ${_desc} into /${gest_folder}/ * * *`)
@@ -47,7 +56,7 @@ var remotePort = 6448
 
 var udpServer = dgram.createSocket('udp4');
 
-(async ()=>{
+/*(async ()=>{
 	console.log('iife')
 	const model = await tf.loadModel('http://localhost:3000/model_a.json')
 	console.log('awaited', model)
@@ -55,10 +64,9 @@ var udpServer = dgram.createSocket('udp4');
 	const idk1 = [0.58333,0.38036,0,0,0.57778,0.40714,0,0,0.575,0.43036,0,0,0.56944,0.47143,0,0,0.56389,0.49286,0,0,0.55833,0.51964,0,0,0.55833,0.53571,0,0,0.55556,0.56071,0,0,0.55278,0.56786,0,0,0.55278,0.57679,0,0,0.55,0.57857,0,0,0.55,0.58214,0,0,0.55,0.58393,0,0,0.55,0.58929,0,0,0.55,0.58929,0,0,0.55,0.59107,0,0,0.55,0.59107,0,0,0.55,0.59286,0,0,0.55,0.59286,0,0,0.55,0.59286,0,0];
 	const res = await model.predict(tf.tensor2d(idk1,[1,80]))
 	console.log('expect:', 1, res.dataSync())
-})()
+})()*/
 
 
-// Get xy coordinates from browser, create an OSC message and send to Wekinator
 io.on('connection', (socket) => {
   console.log('user connected')
 
@@ -79,7 +87,7 @@ io.on('connection', (socket) => {
 
   osc_js.open({port: 12000})
   socket.on('oneCol', gestData => {
-	console.log('one col', JSON.stringify(gestData))
+	return console.log('one col', JSON.stringify(gestData))
 	//serial.write(JSON.stringify(gestData));
 	serial.write('r' + gestData[0])
 	serial.write('g' + gestData[1])
@@ -108,10 +116,6 @@ io.on('connection', (socket) => {
     	
     	fs.writeFileSync( fileName, JSON.stringify(data), 'utf8') 
     	console.log(_gesto, data.data.length)
-    	/*, err=>{ 
-				//if (err) console.error(err) 
-				//console.log('\n', data.data.length)
-		})*/
     })
 
 	return;
@@ -150,9 +154,3 @@ http.listen(3050, ()=>{ console.log('http on 3050')})
 
 //io.listen(3000)
 //console.log('socket listening on port 3000')
-
-/*
-{
-"desc":"intensity 20% down",
-"data":[]
-}*/
