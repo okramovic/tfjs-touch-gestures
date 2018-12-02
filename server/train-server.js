@@ -19,7 +19,6 @@ async function test(){
 
 app.use(express.static('browser_trainer'))
 app.get('/',(req,res)=>{ res.sendFile(__dirname + '/index.html')})
-
 app.get('/data',(req,res)=>{
 	console.log('req.query',req.query.file)
 	fs.readFile('gesture_data_3/' + req.query.file, (err, data)=>{
@@ -34,4 +33,4 @@ app.get('/model', (reg,res)=>{
 	res.end();
 })
 
-app.listen(3000, ()=>console.log('train on 3000'))
+app.listen(3000, ()=>console.log('train on 3000 - serving files in frontend training'))

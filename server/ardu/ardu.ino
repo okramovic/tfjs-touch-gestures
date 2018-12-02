@@ -10,9 +10,9 @@ int bVal = 0;
 
 void setup(){
   pinMode(led, OUTPUT);
-  pinMode(A0, OUTPUT);
-  pinMode(A1, OUTPUT);
-  pinMode(A2, OUTPUT);
+  //pinMode(led1R, OUTPUT); // not needed acorrdin to docs
+  //pinMode(led1G, OUTPUT);
+  //pinMode(led1B, OUTPUT);
   
   Serial.begin(9600);
   Serial.println("hello curd");
@@ -29,17 +29,17 @@ void loop(){
     //Serial.println(msg.length());
     
     if (msg.startsWith("r")){
-      String red = msg.substring(msg.indexOf("r")+1, msg.indexOf("g"));
+      String red = msg.substring(msg.lastIndexOf("r")+1, msg.lastIndexOf("g"));
       rVal = red.toInt();
       Serial.print("red value: ");
       Serial.println(red);
       
-      String gre = msg.substring(msg.indexOf("g")+1, msg.indexOf("b"));
+      String gre = msg.substring(msg.lastIndexOf("g")+1, msg.lastIndexOf("b"));
       gVal = gre.toInt();
       Serial.print("green value: ");
       Serial.println(gre);
       
-      String blu = msg.substring(msg.indexOf("b")+1);
+      String blu = msg.substring(msg.lastIndexOf("b")+1);
       bVal = blu.toInt();
       Serial.print("blue value: ");
       Serial.println(blu);
@@ -49,24 +49,23 @@ void loop(){
       digitalWrite(led, LOW);
       
       setLed(rVal,gVal,bVal);
-      
-      /*rVal = 0;
-      rVal*/
     }
   }
 }
 
 void setLed(int r, int g, int b){
   
-    analogWrite(A0, r);
-    analogWrite(A1, g);
-    analogWrite(A2, b);
-
-    delay(3000);
-    analogWrite(A0, 0);
-    analogWrite(A1, 0);
-    analogWrite(A2, 0);
+    analogWrite(led1R, r);
+    analogWrite(led1G, g);
+    analogWrite(led1B, b*0.66);// blue is brighter than others
     
+    analogWrite(7, r);
+    analogWrite(6, g);
+    analogWrite(5, b*0.66);
+    
+    analogWrite(4, r);
+    analogWrite(3, g);
+    analogWrite(2, b*0.66);
 }
 /*
 int getValue(String msg,int ind){
