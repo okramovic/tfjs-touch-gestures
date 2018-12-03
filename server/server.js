@@ -1,12 +1,14 @@
-'use strict'
+'use strict';
 
-const gestures = ['g1','g4','g7','g8','g10','g11'];
 
 global.fetch = require('node-fetch');
 
 const express = require('express'),
 app = express(),
 http = require('http').Server(app),
+helpers = require('./helpers/map'),
+{ map, rgbToHsl, hslToRgb} = helpers,
+{ fork } = require('child_process'), // exec, execFile, execFileSync? 
 fs = require('fs'),
 osc = require('osc-min'),
 dgram = require('dgram'),
@@ -15,9 +17,9 @@ tf = require('@tensorflow/tfjs'),
 SerialPort = require('serialport')	// https://serialport.io/docs/en/api-serialport
 let serial;
 
-let io = require('socket.io')(http);
+console.log('map', map(1, 0,10, -100,100))
 
-let model;
+let io = require('socket.io')(http);
 
 const serPort = '/dev/ttyACM0';
 try {
@@ -28,14 +30,19 @@ try {
 }
 
 
+const gestures = ['g1','g4','g7','g8','g10','g11'];
+let model;
+
+
 let r = 0,
 	g = 0,
 	b = 0,
 	pr,pg,pb; // remember previous vals
 let prevHue, nowHue;
 
-let timer, dateS, dateE;
+let timer, postponedTimer, dateS, dateE;
 
+// when collecting data
 const gest_folder = 'gesture_data_3';
 const _collect = process.argv[2] && process.argv[2] == '--collect'? true : false;
 // g1, g2, ... g6, etc
@@ -52,6 +59,8 @@ switch(_gesto){
 }
 if (_collect && _gesto) console.log(`* * * collecting data for ${_gesto}, ${_desc} into /${gest_folder}/ * * *`)
 
+
+// serve files
 app.use((req,res,next)=>{
 	console.log('req for',req.url)
 	next()
@@ -66,28 +75,33 @@ app.get('/draw',(req,res)=>{
 
 
 
-var remoteIp = '127.0.0.1'
-var remotePort = 6448
+const remoteIp = '127.0.0.1'
+const remotePort = 6448
+const udpServer = dgram.createSocket('udp4');
 
-var udpServer = dgram.createSocket('udp4');
 
-(async ()=>{
-	// model in folder: gesture data 3
-	model = await tf.loadModel('http://localhost:3000/model_b1.json')
-	console.log('awaited model', !!model)
+// start serving tf model as child process 
+(async()=>{
 	
-	//const idk1 = [0.58333,0.38036,0,0,0.57778,0.40714,0,0,0.575,0.43036,0,0,0.56944,0.47143,0,0,0.56389,0.49286,0,0,0.55833,0.51964,0,0,0.55833,0.53571,0,0,0.55556,0.56071,0,0,0.55278,0.56786,0,0,0.55278,0.57679,0,0,0.55,0.57857,0,0,0.55,0.58214,0,0,0.55,0.58393,0,0,0.55,0.58929,0,0,0.55,0.58929,0,0,0.55,0.59107,0,0,0.55,0.59107,0,0,0.55,0.59286,0,0,0.55,0.59286,0,0,0.55,0.59286,0,0];
-	//const res = await model.predict(tf.tensor2d(idk1,[1,80]))
-	//console.log('expect:', 1, res.dataSync())
-})()
+	// https://stackoverflow.com/questions/18862214/start-another-node-application-using-node-js
+	const child = await fork('./serve-model.js', [], {stdio:'pipe'})
+	//console.log('child?',!!child)
+	
+	//process.on('message')
+	setTimeout(async ()=>{
+		model = await tf.loadModel('http://localhost:3000/model_b1.json')
+		console.log('awaited model:', !!model)
+	}, 3000);
+})();
+
+
 
 
 io.on('connection', (socket) => {
   console.log('user connected')
 
-  const options = { send: { port: 11245 } }
+  /*const options = { send: { port: 11245 } }
   const osc_js = new OSC({ plugin: new OSC.DatagramPlugin(options) })
-
   osc_js.on('/wek/outputs', (message) => {
             console.log('msg', message.args)
             io.emit('controls', message.args);
@@ -97,8 +111,9 @@ io.on('connection', (socket) => {
        console.log('osc open')
        //osc.send(new OSC.Message('/response', Math.random()))
   })
-
-  osc_js.open({port: 12000})
+  osc_js.open({port: 12000})*/
+  
+  // user only wants one steady color
   socket.on('oneCol', gestData => {
 	console.log('one col', JSON.stringify(gestData))
 	
@@ -117,17 +132,22 @@ io.on('connection', (socket) => {
 	serial.write('g' + g)
 	serial.write('b' + b)
   })
-	  
+
+  // gesture - collect or classify
   socket.on('browser', (gestData) => {
     console.log('browser event', gestData.length, '= 4*20')
     console.log(gestData)
     if (gestData.length != 80) return console.log(' --- not a gesture --- ')
     
     
-    classifyGesture(gestData).then( gest=>{
+    classifyGesture(gestData)
+    .then( gest=>{
 		let cols = [r,g,b];
 		
-		if (!(gest == 'g10' || gest == 'g11')) clearInterval(timer)
+		if (!(gest == 'g10' || gest == 'g11')) {
+			clearInterval(timer)
+			clearTimeout(postponedTimer)
+		}
 		
 		// g1, g4, g7, g8, g10, g11
 		if (gest == 'g1'){				// 20% less
@@ -155,29 +175,42 @@ io.on('connection', (socket) => {
 			g = pg
 			b = pb
 			
-		} else if (gest == 'g10'){
+		} else if (gest == 'g10'){	// oclock mode
 			
 			if (timer) clearInterval(timer)
-			prevHue = rgbToHsl(r, g, b)	// https://stackoverflow.com/questions/2353211/hsl-to-rgb-color-conversion
-			console.log('prevHue',prevHue)
-			timer = setInterval(()=>{
-				prevHue[0] += 10
-				if (prevHue[0]>=360) prevHue[0] -= 360
-				console.log('new h', prevHue[0], prevHue[0]/360)
+			clearTimeout(postponedTimer)
+			
+			sendTimeColorToArdu() // show current clock color immediately
+			
+			// make user clock adjusts color exactly on hr:00:00
+			const delayMillis = (60 - new Date().getSeconds())*1000
+						
+			postponedTimer = setTimeout(()=>{
+				console.log('starting clock now :00')
+				// start clock
+				timer = setInterval(sendTimeColorToArdu, 60000)
+			}, delayMillis)
+			
+			// convert minutes to Hue color degrees and send it to Arduino
+			function sendTimeColorToArdu(){
+				// colors will be:
+				// yellow(00) to magenta (59) and green, blue etc in between
 				
-				const newHue = [prevHue[0]/360, prevHue[1], prevHue[2]]
+				const minute = new Date().getMinutes()
+				const currHue = map(minute, 0,59, 60, 300) 
 				
-				const rgbs = hslToRgb(...newHue)
+				const rgbs = hslToRgb(currHue/360,1,0.5)  // https://stackoverflow.com/questions/2353211/hsl-to-rgb-color-conversion
+				console.log('   clock' , minute, 'rgbs', currHue, '=>', rgbs)
 				
-				//console.log('   rgbs', rgbs)
 				sendToArdu('r', rgbs[0])
 				sendToArdu('g', rgbs[1])
 				sendToArdu('b', rgbs[2])
-			},2000) // arduino cant make it with faster interval
-			
+			}
 			return;
+	
 		} else if (gest == 'g11'){
 			clearInterval(timer);
+			clearTimeout(postponedTimer)
 			
 			timer = setInterval(()=>{
 				r *= 0.75;
@@ -209,9 +242,9 @@ io.on('connection', (socket) => {
 	})
     
     
+    
     if (!_gesto) return console.log('not recording')
     
-
     // save gesture data to its file (for tensorflow)
     const fileName = process.cwd() + '/' + gest_folder + '/' + _gesto +'.json';
     fs.readFile(fileName,'utf8',(err, data)=>{
@@ -224,10 +257,9 @@ io.on('connection', (socket) => {
     	console.log(_gesto, data.data.length)
     })
 
-	return;
-	
+
 	// for wekinator
-	const args = []
+	/*const args = []
     gestData.forEach(element =>{
       args.push({
         type: 'float',
@@ -239,55 +271,10 @@ io.on('connection', (socket) => {
       address: '/wek/inputs',
       args: args
     })
-    udpServer.send(oscMsg, 0, oscMsg.length, remotePort, remoteIp)
+    udpServer.send(oscMsg, 0, oscMsg.length, remotePort, remoteIp)*/
   })
 })
 
-function rgbToHsl(r, g, b){
-      r /= 255, g /= 255, b /= 255;
-      var max = Math.max(r, g, b), min = Math.min(r, g, b);
-      var h, s, l = (max + min) / 2;
-
-      if(max == min){
-          h = s = 0; // achromatic
-      } else {
-          var d = max - min;
-          s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-          switch(max){
-              case r: h = (g - b) / d ; break;
-              case g: h = 2 + ( (b - r) / d); break;
-              case b: h = 4 + ( (r - g) / d); break;
-          }
-          h*=60;
-          if (h < 0) h +=360;
-      }
-     return([h, s, l]);
-} 
-
-function hslToRgb(h, s, l){
-    var r, g, b;
-
-    if(s == 0){
-        r = g = b = l; // achromatic
-    }else{
-        var hue2rgb = function hue2rgb(p, q, t){
-            if(t < 0) t += 1;
-            if(t > 1) t -= 1;
-            if(t < 1/6) return p + (q - p) * 6 * t;
-            if(t < 1/2) return q;
-            if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
-            return p;
-        }
-
-        var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-        var p = 2 * l - q;
-        r = hue2rgb(p, q, h + 1/3);
-        g = hue2rgb(p, q, h);
-        b = hue2rgb(p, q, h - 1/3);
-    }
-
-    return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
-}
 
 function sendToArdu(col, val){
 	serial.write(col + val);
@@ -313,7 +300,6 @@ udpServer.on('message', (msg, remote)=>{
     //console.log(remote.address + ':' + remote.port +' - ' + message);
 
 });*/
-
 //udpServer.bind(12000, remoteIp);
 
 
