@@ -2,6 +2,8 @@
 function log(){ console.log(...arguments);}
 log('traiiin')
 
+const modelName = 'model_b2'
+
 const gests = {
 		0: '20% down',
 		1: '20% up',
@@ -9,7 +11,7 @@ const gests = {
 		,7: '100%'
 		,
 }
-const dataFiles = ['g1','g4','g7','g8','g10','g11']
+const dataFiles = ['g1','g4','g7','g8','g10','g11','g19']
 const allData = {},
 	  allLabels = {},
 	  testData = {};
@@ -23,8 +25,6 @@ async function fetchAllData(){
 		fetch(`/data/?file=${fn}.json`)
 		.then(res=>res.json())
 		.then(json=>{
-			//log('fetched file', fn, typeof json, json.data.length)
-			//allData[fn] = json//.data
 			return json.data;
 		})
 	)
@@ -125,7 +125,7 @@ async function doModel(dataPoints, trainLabels){
 	}).then(async history =>{
 		console.log('! model trained !');
 		log('saving model...')
-		await model.save('downloads://model_b1');
+		await model.save(`downloads://${modelName}`);
 		dataFiles.map(testModelAllTests) // log test results
 	})
 

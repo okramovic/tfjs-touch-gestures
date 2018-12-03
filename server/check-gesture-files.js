@@ -1,9 +1,21 @@
 'use strict';
 function log(){console.log(...arguments);}
 
-const files = ['g1','g4','g7','g8','g10','g11']
+// checks if all arays are 80 long, and if all conatin only numbers from -1 to 1
+
+// usage: node check-gesture-files --gesture_data_3 --g19
+
+
+let files = ['g1','g4','g7','g8','g10','g11', 'g19']
 const fs = require('fs')
 const data_folder = process.argv[2]? process.argv[2].replace('--','') : 'gesture_data_3';
+
+
+if (process.argv[3] && process.argv[3].startsWith('--g')){
+	const singleFile = process.argv[3].replace('--','')
+	files = [singleFile]
+}
+
  
 log('checking files: ', files)
 log('data_folder', data_folder)

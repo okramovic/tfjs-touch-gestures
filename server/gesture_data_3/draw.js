@@ -7,13 +7,15 @@ const gli = {
 	g7:'https://cdn.glitch.com/c825bb9b-ffe7-4f29-b89f-7cd4bcff6292%2Fg7.json?1543691240950',
 	g8:'https://cdn.glitch.com/c825bb9b-ffe7-4f29-b89f-7cd4bcff6292%2Fg8.json?1543691241078',
 	g10:'https://cdn.glitch.com/c825bb9b-ffe7-4f29-b89f-7cd4bcff6292%2Fg10.json?1543691241333',
-	g11:'https://cdn.glitch.com/c825bb9b-ffe7-4f29-b89f-7cd4bcff6292%2Fg11.json?1543691241537'
+	g11:'https://cdn.glitch.com/c825bb9b-ffe7-4f29-b89f-7cd4bcff6292%2Fg11.json?1543691241537',
+	g19:'https://cdn.glitch.com/c825bb9b-ffe7-4f29-b89f-7cd4bcff6292%2Fg19.json?1543868180243',
+	
 }
 
 
 function preload(){
 	// load one gest data and display them as lines
-	loadJSON(gli.g11, res =>{	// url
+	loadJSON(gli.g19, res =>{	// url
 		l(res.desc)
 		g1.desc = res.desc
 		g1.data = res.data
@@ -26,7 +28,7 @@ function setup(){
 	l('sueno', g1)
 	
 	
-	for (let i=110; i<g1.data.length; i++) 
+	for (let i=0; i<g1.data.length; i++) 
 		drawOneGesture(g1, i)
 }
 

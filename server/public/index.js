@@ -13,6 +13,9 @@ document.querySelector('span').innerHTML = 'wilkommen';
 
 socket.on('connect', function() {
   
+  socket.on('gestureClass', gest=>{
+	  show('gestureClass', gest)
+  })
   
   document.querySelector('span').innerHTML = 'connected';
   

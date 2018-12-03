@@ -17,8 +17,6 @@ tf = require('@tensorflow/tfjs'),
 SerialPort = require('serialport')	// https://serialport.io/docs/en/api-serialport
 let serial;
 
-console.log('map', map(1, 0,10, -100,100))
-
 let io = require('socket.io')(http);
 
 const serPort = '/dev/ttyACM0';
@@ -30,7 +28,7 @@ try {
 }
 
 
-const gestures = ['g1','g4','g7','g8','g10','g11'];
+const gestures = ['g1','g4','g7','g8','g10','g11','g19'];
 let model;
 
 
@@ -41,6 +39,10 @@ let r = 0,
 let prevHue, nowHue;
 
 let timer, postponedTimer, dateS, dateE;
+
+// when serving model, example: model_b1
+const modelName = process.argv[2] && process.argv[2].startsWith('--model') ? 
+		process.argv[2].replace('--','') : null; 
 
 // when collecting data
 const gest_folder = 'gesture_data_3';
@@ -55,6 +57,7 @@ switch(_gesto){
 	case 'g8': _desc = 'intensity to 100%'; break;
 	case 'g10': _desc = 'o clock mode'; break;
 	case 'g11': _desc = 'goodnight mode'; break;
+	case 'g19': _desc = 'show help'; 	break;
 	default: console.log('no gesture provided !!')
 }
 if (_collect && _gesto) console.log(`* * * collecting data for ${_gesto}, ${_desc} into /${gest_folder}/ * * *`)
@@ -82,6 +85,7 @@ const udpServer = dgram.createSocket('udp4');
 
 // start serving tf model as child process 
 (async()=>{
+	if (_collect && !modelName) return console.log('not loading model');
 	
 	// https://stackoverflow.com/questions/18862214/start-another-node-application-using-node-js
 	const child = await fork('./serve-model.js', [], {stdio:'pipe'})
@@ -89,7 +93,7 @@ const udpServer = dgram.createSocket('udp4');
 	
 	//process.on('message')
 	setTimeout(async ()=>{
-		model = await tf.loadModel('http://localhost:3000/model_b1.json')
+		model = await tf.loadModel(`http://localhost:3000/${modelName}.json`)
 		console.log('awaited model:', !!model)
 	}, 3000);
 })();
@@ -140,11 +144,13 @@ io.on('connection', (socket) => {
     if (gestData.length != 80) return console.log(' --- not a gesture --- ')
     
     
-    classifyGesture(gestData)
+    if (!_collect) classifyGesture(gestData)
     .then( gest=>{
-		let cols = [r,g,b];
+		//let cols = [r,g,b];
 		
-		if (!(gest == 'g10' || gest == 'g11')) {
+		io.emit('gestureClass', gest )
+		
+		if (!(gest == 'g10' || gest == 'g11' || gest=='g19')) {
 			clearInterval(timer)
 			clearTimeout(postponedTimer)
 		}
@@ -188,7 +194,7 @@ io.on('connection', (socket) => {
 			postponedTimer = setTimeout(()=>{
 				console.log('starting clock now :00')
 				// start clock
-				timer = setInterval(sendTimeColorToArdu, 60000)
+				timer = setInterval(sendTimeColorToArdu, 20000) // i dont want it to make visible color steps
 			}, delayMillis)
 			
 			// convert minutes to Hue color degrees and send it to Arduino
