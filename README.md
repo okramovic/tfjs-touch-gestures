@@ -1,14 +1,15 @@
+## tensorflow.js model to classify gestures from smartphone - used to control arduino hue lamp
 
-_ cd to/the/project/dir/ _
-_ npm install _
-_ node tf2.js --gesture_data_3 _
+under heavy construction. made for rapsberry pi
 
-## tensorflow.js model to classify gestures from smartphone - used to control hue lamp
+#### gestures now:
+* intensity 20% down
+* intensity 20% up
+* intensity to 0%
+* intensity to 100%
+* clock mode
+* goodnight mode
+* show help
 
-#### gestures tested now:
-###### intensity 20% down
-###### intensity 20% up
-###### intensity to 0%
 
-
-#### training data: ~70 samples per gesture, 3 gesture classes, data stored in folder gesture_data_3
+#### training data: ~110-120 samples per gesture, 7 gesture classes, most recent data stored in folder gesture_data_3

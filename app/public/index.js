@@ -1,11 +1,13 @@
-const socket = io('192.168.0.136:3050'); // from https://whatismyip.live/  //io('http://localhost:3050')
+'use strict'
+
+const socket = io('192.168.0.136:3050'); // io('http://localhost:3050')
 const inputsNumber = 40; // how long/complex gestures will this allow?
 
 let startPoint = {};
 let fingerCount = 0;
 let isMouseDown = false;
 let rawData = []
-//let originX1, originY1, originX2, originY2; // XYs for both fingers
+//let originX1, originY1, originX2, originY2
 
 document.querySelector('span').innerHTML = 'wilkommen';
 
@@ -25,7 +27,7 @@ socket.on('connect', function() {
     fingerCount = e.touches.length > fingerCount ? e.touches.length : fingerCount; // to prevent touchend to fire to soon
     
     startPoint.x = parseInt(e.touches[0].clientX),
-	startPoint.y = parseInt(e.touches[0].clientY)
+	  startPoint.y = parseInt(e.touches[0].clientY)
     e.preventDefault();
   }
   //document.ontouchend = handleMouseEnd

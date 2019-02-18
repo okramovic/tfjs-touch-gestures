@@ -25,7 +25,7 @@ function preload(){
 function setup(){
 	createCanvas(360,560)
 	background(200)
-	l('sueno', g1)
+	l('gest data', g1)
 	
 	
 	for (let i=0; i<g1.data.length; i++) 

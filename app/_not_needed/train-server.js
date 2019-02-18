@@ -1,5 +1,7 @@
 'use strict'
 
+// old version where training was done on server
+
 const express = require('express'),
 app = express(),
 fs = require('fs');
@@ -14,7 +16,6 @@ async function test(){
 	//await tf.loadModel('https://cdn.glitch.com/c825bb9b--7cd4bcff6292%2Fmodel_a.json?1543526067317')
 	//await tf.loadFrozenModel('https://cdn.glitch.com/c825bb9b-ffe7-4f29-b89f-7cd4bcff6292%2Fmodel_a.json?1543526529220',
 	//						 'https://cdn.glitch.com/c825bb9b-ffe7-4f29-b89f-7cd4bcff6292%2Fmodel_a.weights.bin?1543526036021')
-	//console.log('after loading model')
 }
 
 app.use(express.static('browser_trainer'))

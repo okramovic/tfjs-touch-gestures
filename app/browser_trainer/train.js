@@ -3,6 +3,8 @@ function log(){ console.log(...arguments);}
 log('traiiin')
 
 const modelName = 'model_b2'
+let model;
+
 
 const gests = {
 		0: '20% down',
@@ -41,15 +43,14 @@ async function fetchAllData(){
 }
 
 
-
-let epochsDesired = 150; // will default to 50;
 fetchAllData()
+// split data into sets
 .then(rawData=>{
 	log('using data for gestures',Object.keys(rawData), rawData)
 	
 	const flattenedData = []
 	const trainLabels = [];
-	const maxGs = 110; // i have only 10 gesture for g1 now
+	const maxGs = 100; // i have only 10 gesture for g1 now
 	// create labels array for each gesture
 	Object.keys(rawData).map((g,keyI) =>{
 		
@@ -59,11 +60,11 @@ fetchAllData()
 		thisLabels[keyI] = 1;
 		allLabels[g] = thisLabels;
 		
-		// reduce dataPoints for each gestures to only 20, since its so few
+		// reduce dataPoints for each gestures to only cca 100(or maxGs/max gestures), since its so few
 		const newxs = rawData[g].splice(0,maxGs)//.map(arr=>arr.splice(0,2)) // just for debug
 		flattenedData.push(...newxs)
 			
-		log(g,'      - index', index, keyI)
+		//log(g,'      - index', index, keyI)
 		
 		// put labels into same shape = 10 x [20 x 1]
 		for (let i=0; i<maxGs; i++){
@@ -84,10 +85,10 @@ fetchAllData()
 async function doModel(dataPoints, trainLabels){
 	if (dataPoints.length != trainLabels.length) return log('wierd data');
 	
-	//log(dataPoints)
-	//log('trainLabels',trainLabels)
+	log(dataPoints)
+	log('trainLabels',trainLabels)
 	const numGestures = dataFiles.length;
-	const model = tf.sequential()
+	model = tf.sequential()
 	const xs = tf.tensor2d(dataPoints) // aa,[4,3],'int32'
 	
 	const onehots = tf.tensor1d(trainLabels, 'int32');
@@ -98,34 +99,60 @@ async function doModel(dataPoints, trainLabels){
 	
 	const shape = 80 // has to match length of inside array(80)
 	model.add( tf.layers.dense({ units: 80, inputShape: shape, activation: 'relu' }) )
-	model.add( tf.layers.dense({ units: 40, activation: 'sigmoid'}) )
-	model.add( tf.layers.dense({ units: 40, activation: 'relu'}) )
+	//model.add( tf.layers.dense({ units: 40, activation: 'relu'}) )
+  //model.add( tf.layers.dense({ units: 40, activation: 'relu'}) )
+  //model.add( tf.layers.dense({ units: 40, activation: 'relu'}) ) // @ around 100 datapoints per class, these layers dont improve accuracy
+  //model.add( tf.layers.dense({ units: 30, activation: 'relu'}) ) //
+  //model.add( tf.layers.dense({ units: 30, activation: 'relu'}) )
+  //model.add( tf.layers.dense({ units: 30, activation: 'relu'}) ) //
+  //model.add( tf.layers.dense({ units: numGestures*2, activation: 'relu'}) ) //
+  model.add( tf.layers.dense({ units: numGestures*2, activation: 'relu'}) ) //
+
 	//model.add( tf.layers.dense({ units:  8, activation: 'sigmoid'}) )
 	
 	// https://medium.com/tensorflow/a-gentle-introduction-to-tensorflow-js-dba2e5257702
 	const output = tf.layers.dense({ units: numGestures, activation: 'softmax'})
 	model.add(output);	// this layer makes loss somewhat smaller (lol, one of first comments here)
-	const optimizer = tf.train.adam(0.003); // adam w 0.008 is way better (100% training accur.) than any sgd
-	model.compile({loss: 'categoricalCrossentropy', optimizer: optimizer })
-	log('about to fit model')
-	//train
+	const optimizer = tf.train.adam(0.0015); // adam w 0.008 is way better (100% training accur.) than any sgd
+  model.compile({loss: 'categoricalCrossentropy', optimizer: optimizer, metrics: ['accuracy'] })
+  
+
+
+
+  //train
+  const epochsDesired = 3000; // will default to 100;
+	log(' --------------------------------------     about to fit model for', epochsDesired || 100, 'epochs')
+
 	model.fit(xs, labels, {
-       //batchSize: 1,
+       batchSize: 10, //dataPoints.length,  // put all train datapoints to train?
+       stepsPerEpoch: 1,
        shuffle: true,
-       epochs: 50,//epochsDesired || 100,
-       //validationSplit: 0.1,
-       //metrics: ['accuracy'],
+       epochs: epochsDesired || 100,
+       validationSplit: 0.1,
        callbacks:{
-		   onTrainStart:()=>{ console.log('start') },
-		   onTrainEnd:  ()=>{ console.log(' -- training complete -- ')},
-		   onEpochStart:()=>{log('e')},
+		   onTrainBegin:()=> log(' == training started == '),
+		   onTrainEnd:  ()=> log(' -- training complete -- '),
+		   //onEpochBegin:()=>{log('e')},
 		   onEpochEnd: (epochNum,logs)=>{ log(epochNum, logs)}
-	   }
-	// predict	
+     }
+     
+	// test model	+ save it
 	}).then(async history =>{
-		console.log('! model trained !');
-		log('saving model...')
-		await model.save(`downloads://${modelName}`);
+    log('! model trained !');
+    
+    
+    // unhide saving options in html
+    document.querySelector('#savingDiv').style.display = 'block'
+    document.querySelector('#saveModel').addEventListener('click', async ev =>{
+
+        let name = (document.querySelector('input[type="text"]').value || 'test_model') + new Date().toDateString()
+
+        log('saving model...', name)
+        await model.save(`downloads://${name}`);
+        log('[[[ saved ]]]')
+    })
+
+		
 		dataFiles.map(testModelAllTests) // log test results
 	})
 
@@ -134,11 +161,15 @@ async function doModel(dataPoints, trainLabels){
 			// get test samples of each gesture
 			// predict for each of gestures
 			testData[gest].map(async (g,i)=>{
-				const res = await model.predict(tf.tensor2d(g,[1,80]))
-				const results = res.dataSync()
-				const max = Math.max(...results)
-				
-				log('\nexpect', gest, dataFiles[results.indexOf(max)], results)
+          const res = await model.predict(tf.tensor2d(g,[1,80]))
+          const results = res.dataSync()
+          const max = Math.max(...results)
+          
+          if (gest == dataFiles[results.indexOf(max)]) log('\nexpect', gest, dataFiles[results.indexOf(max)],` ( of ${testData[gest].length} tests )`)
+          else {
+            log('\nexpect', gest, dataFiles[results.indexOf(max)],` ( of ${testData[gest].length} tests )`)
+            console.table( results)
+          }
 			})
 	}
 }

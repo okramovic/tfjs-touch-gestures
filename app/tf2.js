@@ -1,9 +1,12 @@
 'use strict';
+
+// server-side training - old (browser side allows saving model)
+
 function log(){ console.log(...arguments);}
 
 const tf = require('@tensorflow/tfjs')
 const fs = require('fs')
-//import * as tf from '@tensorflow/tfjs';
+
 
 const gests = {
 		0: '20% down',
@@ -17,16 +20,17 @@ const allData = {},
 	  testData = {};
 const zeros = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]; // for 20 gestures
 
-let epochsDesired = 50; // will default to 50;
+let epochsDesired = 50; // default;
 
 
 getFileData()
 .then(rawData=>{
 	log('using data for gestures',Object.keys(rawData))
-	//return;
+	
 	const flattenedData = []
 	const trainLabels = [];
-	const maxGs = 65; // i have only 10 gesture for g1 now
+  const maxGs = 65;
+  
 	// create labels array for each gesture
 	Object.keys(rawData).map((g,keyI) =>{
 		
@@ -36,14 +40,14 @@ getFileData()
 		thisLabels[index] = 1;
 		allLabels[g] = thisLabels;
 		//log(' -',rawData[g].length, 'in', g)
-		// reduce dataPoints for each gestures to only 20, since its so few
+		// reduce dataPoints for each gestures to only few tens, since its so few
 		const newx = rawData[g].splice(0,maxGs)//.map(arr=>arr.splice(0,2)) // just for debug
 		flattenedData.push(...newx)
 			
 		log('      - index', index)
 		// put labels into same shape = 10 x [20 x 1]
 		for (let i=0; i<maxGs; i++){
-			trainLabels.push(keyI) //index)
+			trainLabels.push(keyI)
 		}
 		//log(g,'has ', rawData[g].length,'gestures')
 				
@@ -171,7 +175,7 @@ function openWebInterface(model){
 				2: '0% Off'
 			};
 			
-			// spit out gesture description
+			// get gesture description
 			log(`is it '${g[resIndex]}'? ${max}`)
 		})
 	})

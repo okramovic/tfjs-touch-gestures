@@ -1,8 +1,7 @@
 'use strict';
 function log(){console.log(...arguments);}
 
-// checks if all arays are 80 long, and if all conatin only numbers from -1 to 1
-
+// checks if all collected arrays are 80 long, and if all contain only numbers from -1 to 1
 // usage: node check-gesture-files --gesture_data_3 --g19
 
 
@@ -58,7 +57,5 @@ async function getGestureData(){
 		}
 	})
 	
-	return await Promise.all(promises)
-	
-	
+	return await Promise.all(promises)	
 }
